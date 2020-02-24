@@ -339,6 +339,18 @@ module.exports.init = function(config, logger, stats) {
     };
 
     function authorize(req, res, next, logger, stats, decodedToken, apiKey) {
+        //check app attributes - allowAPIKeyOnlyAccess. If not set or set to false - deny API key only access
+        if (decodedToken.application_attributes) {
+            debug("found " + decodedToken.application_attributes.length + " application attributes(s)");
+            var allowAPIKeyOnlyAccessAppAttribute = false;
+            for (var i = 0; i < decodedToken.application_attributes.length; i++) {
+                if (decodedToken.application_attributes[i].Name === "allowAPIKeyOnlyAccess") {
+                    allowAPIKeyOnlyAccessAppAttribute = (decodedToken.application_attributes[i].Value.toLowerCase() === 'true') ? true : false ;                    }
+            }
+            debug("application attribute allowAPIKeyOnlyAccess=" + allowAPIKeyOnlyAccessAppAttribute);
+            if (apiKey && !allowAPIKeyOnlyAccessAppAttribute) {return sendError(req, res, next, logger, stats, 'access_denied','API key only access is not allowed for the application');}
+        }
+
         if (checkIfAuthorized(config, req, res, decodedToken, productOnly, logger, LOG_TAG_COMP)) {
             req.token = decodedToken;
 
